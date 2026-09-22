@@ -3,37 +3,13 @@ import time
 import hmac
 import hashlib
 from urllib.parse import urlencode
-import json
-import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-# ============================================================
-# الإعدادات - ضع مفاتيحك هنا
-# ============================================================
-
-API_KEY = (
-    'Te2SJU8b6uhGXjWaN3gijm3FBgUQ'
-    'TlqOrVzMMzH8GElgvsnjPtpXy3DPD'
-    'mdJHfNN'
-)
-API_SECRET = (
-    '0BKIJKOC9KhqnXaZCstBfc4JnuvUF'
-    '2L0d7BvA3YaxyJHvSOniuksb1Th1ra'
-    'M2Qaz'
-)
-TELEGRAM_TOKEN = '8911308822:AAH4EPvsJzoXbG7iCAfq1t_a_sswQf2RqRY'
+# استيراد المفاتيح من ملف config.py
+from config import API_KEY, API_SECRET, TELEGRAM_TOKEN
 
 BASE_URL = "https://api.binance.com"
-
-# ============================================================
-# إعداد السجل
-# ============================================================
-
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
 
 # ============================================================
 # إنشاء التوقيع
@@ -78,7 +54,8 @@ def find_transaction(order_id):
         result = response.json()
 
         if not result.get("success"):
-            return None, "فشل الاتصال بـ Binance"
+            error_msg = result.get("message", result.get("msg", "خطأ غير معروف"))
+            return None, f"Binance: {error_msg}"
 
         transactions = result.get("data", [])
 
@@ -107,7 +84,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     order_id = update.message.text.strip()
 
-    # التحقق من أن المدخل رقم
     if not order_id.isdigit():
         await update.message.reply_text("⚠️ الرجاء إرسال رقم معاملة صحيح (أرقام فقط).")
         return
@@ -120,7 +96,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await msg.edit_text(f"❌ {error}")
         return
 
-    # تنسيق النتيجة
     text = "✅ **تم العثور على المعاملة**\n\n"
     text += f"🆔 **رقم المعاملة**: `{transaction.get('orderId', 'غير متوفر')}`\n"
     text += f"💰 **المبلغ**: `{transaction.get('amount', 'غير متوفر')}`\n"
