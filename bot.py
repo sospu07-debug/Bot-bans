@@ -12,12 +12,12 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 # الإعدادات - ضع مفاتيحك هنا
 # ============================================================
 
-API_KEY = 'Te2SJU8bбuhGXjWaNЗgijm3FBgUQ
+API_KEY = "Te2SJU8bбuhGXjWaNЗgijm3FBgUQ
 TlqOrVzMMzH8GElgvsnjPtрХy3DPD
-mdJHfNN'
-API_SECRET = 'OBKIJKOC9KhqnXaZCstBfc4JnuvUF
+mdJHfNN"
+API_SECRET = "OBKIJKOC9KhqnXaZCstBfc4JnuvUF
 2LOd7BvA3YaxyJHvSOniuksb1Th1ra
-M2Qaz'
+M2Qaz"
 TELEGRAM_TOKEN = '8911308822:AAH4EPvsJzoXbG7iCAfq1t_a_sswQf2RqRY'
 
 BASE_URL = "https://api.binance.com"
