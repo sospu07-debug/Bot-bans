@@ -1,127 +1,118 @@
-import requests
+import libsql_client
 import time
-import hmac
-import hashlib
-import asyncio
-from urllib.parse import urlencode
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    Application, CommandHandler, MessageHandler,
-    CallbackQueryHandler, filters, ContextTypes
-)
-
-# استيراد دوال قاعدة البيانات
-from db import (
-    init_db, get_balance, add_balance, deduct_balance,
-    is_order_used, save_order,
-    set_pending, get_pending, clear_pending
-)
 
 # ============================================================
-# الإعدادات
+# إعدادات Turso
 # ============================================================
 
-API_KEY = 'ضع_مفتاح_API_هنا'
-API_SECRET = 'ضع_المفتاح_السري_هنا'
-TELEGRAM_TOKEN = 'ضع_توكن_البوت_هنا'
-ADMIN_ID = 123456789
-BINANCE_PAY_ID = '1252306038'
-
-SMM_API_URL = 'https://smmnine.com/api/v2'
-SMM_API_KEY = 'ضع_مفتاح_SMMNine_هنا'
-
-BASE_URL = "https://api.binance.com"
-TIME_WINDOW = 3 * 24 * 60 * 60 * 1000
-
-processing_lock = asyncio.Lock()
+TURSO_URL = "libsql://bot-yh12.aws-eu-west-1.turso.io"
+TURSO_TOKEN = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3OTAzNjQwMDYsImlkIjoiMDFhMGRhMDItODgwMS03YzEyLTk5MDctOWU3NjUyNzU1ZTJiIiwia2lkIjoiVlBQNnp6OUpNWF93enYwZVJiYTliWkZOcnhfMGw0WlJpTFhBSVJEWHNwQSIsInJpZCI6ImViYzJmNWJkLTA0ZTUtNDQ2Mi05M2QwLTJiNDM2Zjc5OTliYyJ9.ARjNKyILIi5-q6cZim76vGLlGs6H0W4UDiSsOprd7eTYjDbd_kG0g7IxXSB-pScaHVs0L3YbCgL8A6205fYiCg"
 
 # ============================================================
-# دوال Binance
+# الاتصال
 # ============================================================
 
-def create_signature(params):
-    query_string = urlencode(params)
-    signature = hmac.new(
-        API_SECRET.encode("utf-8"),
-        query_string.encode("utf-8"),
-        hashlib.sha256
-    ).hexdigest()
-    return query_string, signature
+def get_client():
+    return libsql_client.create_client_sync(url=TURSO_URL, auth_token=TURSO_TOKEN)
 
-def find_transaction(order_id):
-    order_id = str(order_id).strip()
-    params = {
-        "timestamp": int(time.time() * 1000),
-        "recvWindow": 5000,
-        "limit": 100
-    }
-    query_string, signature = create_signature(params)
-    url = BASE_URL + "/sapi/v1/pay/transactions?" + query_string + "&signature=" + signature
-    headers = {"X-MBX-APIKEY": API_KEY}
+# ============================================================
+# تهيئة الجداول
+# ============================================================
 
+def init_db():
+    client = get_client()
+    client.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY,
+            balance REAL DEFAULT 0
+        )
+    ''')
+    client.execute('''
+        CREATE TABLE IF NOT EXISTS used_orders (
+            order_id TEXT PRIMARY KEY,
+            user_id INTEGER,
+            amount REAL,
+            used_at INTEGER
+        )
+    ''')
+    client.execute('''
+        CREATE TABLE IF NOT EXISTS pending_payments (
+            user_id INTEGER PRIMARY KEY,
+            expected_amount REAL,
+            created_at INTEGER
+        )
+    ''')
+    client.close()
+
+# ============================================================
+# دوال المستخدمين
+# ============================================================
+
+def get_balance(user_id):
+    client = get_client()
+    result = client.execute("SELECT balance FROM users WHERE user_id = ?", [user_id])
+    client.close()
+    if result.rows:
+        return result.rows[0][0]
+    return 0.0
+
+def add_balance(user_id, amount):
+    client = get_client()
+    client.execute('''
+        INSERT INTO users (user_id, balance) VALUES (?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET balance = balance + ?
+    ''', [user_id, amount, amount])
+    client.close()
+
+def deduct_balance(user_id, amount):
+    client = get_client()
+    client.execute("UPDATE users SET balance = balance - ? WHERE user_id = ?", [amount, user_id])
+    client.close()
+
+# ============================================================
+# دوال الأوردرات المستخدمة
+# ============================================================
+
+def is_order_used(order_id):
+    client = get_client()
+    result = client.execute("SELECT order_id FROM used_orders WHERE order_id = ?", [order_id])
+    client.close()
+    return len(result.rows) > 0
+
+def save_order(order_id, user_id, amount):
+    client = get_client()
     try:
-        response = requests.get(url, headers=headers, timeout=20)
-        result = response.json()
-        if not result.get("success"):
-            error_msg = result.get("message", result.get("msg", "خطأ غير معروف"))
-            return None, f"Binance: {error_msg}"
-        transactions = result.get("data", [])
-        for transaction in transactions:
-            transaction_order_id = str(transaction.get("orderId", "")).strip()
-            if transaction_order_id == order_id:
-                tx_time = transaction.get("timestamp", 0)
-                if tx_time and (int(time.time() * 1000) - tx_time) > TIME_WINDOW:
-                    return None, "المعاملة قديمة (أكثر من 3 أيام)"
-                return transaction, None
-        return None, "لم يتم العثور على المعاملة"
-    except Exception as e:
-        return None, f"حدث خطأ: {str(e)}"
+        client.execute('''
+            INSERT INTO used_orders (order_id, user_id, amount, used_at)
+            VALUES (?, ?, ?, ?)
+        ''', [order_id, user_id, amount, int(time.time() * 1000)])
+    except Exception:
+        pass
+    client.close()
 
 # ============================================================
-# دوال SMMNine
+# دوال الدفعات المعلقة
 # ============================================================
 
-def smm_add_order(service_id, link, quantity):
-    payload = {
-        'key': SMM_API_KEY,
-        'action': 'add',
-        'service': service_id,
-        'link': link,
-        'quantity': quantity
-    }
-    try:
-        response = requests.post(SMM_API_URL, data=payload, timeout=30)
-        result = response.json()
-        if 'order' in result:
-            return result['order'], None
-        else:
-            return None, result.get('error', 'خطأ غير معروف من الموقع')
-    except Exception as e:
-        return None, f"فشل الاتصال بالموقع: {str(e)}"
+def set_pending(user_id, amount):
+    client = get_client()
+    now = int(time.time() * 1000)
+    client.execute('''
+        INSERT INTO pending_payments (user_id, expected_amount, created_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET expected_amount = ?, created_at = ?
+    ''', [user_id, amount, now, amount, now])
+    client.close()
 
-# ============================================================
-# الخدمات
-# ============================================================
+def get_pending(user_id):
+    client = get_client()
+    result = client.execute("SELECT expected_amount FROM pending_payments WHERE user_id = ?", [user_id])
+    client.close()
+    if result.rows:
+        return result.rows[0][0]
+    return None
 
-SERVICES = {
-    "tg_members": {
-        "name": "أعضاء تليجرام",
-        "price": 0.5,
-        "unit": 1000,
-        "warranty": "14 يوم",
-        "service_id": "8411"
-    },
-    "reactions": {
-        "name": "ردود فعل",
-        "price": 0.1,
-        "unit": 1000,
-        "warranty": "لا يوجد",
-        "service_id": "ضع_رقم_الخدمة_هنا"
-    }
-}
-
-# ============================================================
-# باقي دوال البوت (start, button_handler, handle_message)
-# ============================================================
-
-# ... (نفس الكود السابق من start إلى النهاية، لا تغيير)
+def clear_pending(user_id):
+    client = get_client()
+    client.execute("DELETE FROM pending_payments WHERE user_id = ?", [user_id])
+    client.close()
