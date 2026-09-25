@@ -16,11 +16,11 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 # ============================================================
 
 API_KEY = (
-    'dz6TfApzEkczDFTGk8fTd61WHVVLRxeVbdI60KtDRLehQNhckNRIwrglWsanghlq'
+    'WFHIGs8VvN4IXWOIMJBRAjRVGYviS5005UNQJbOvP5t5mOeoZDtuQAeRByRTxfu8'
 )
 
 API_SECRET = (
-    'dz6TfApzEkczDFTGk8fTd61WHVVLRxeVbdI60KtDRLehQNhckNRIwrglWsanghlq'
+    'FGKMYgMc9iI3VL1z6UhEzm1aGAk68aLMO3WxLapyhPnTrP6GjWeuahpXaE5LhKUs'
 )
 
 TELEGRAM_TOKEN =('8911308822:AAGeFsK8GTFP2f35vrKlGszP2-w_YGUFMGw'
