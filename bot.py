@@ -1,18 +1,35 @@
+# ============================================================
+# Binance Pay Bot - البحث عن معاملة برقم Order ID
+# ============================================================
+
 import requests
 import time
 import hmac
 import hashlib
 from urllib.parse import urlencode
+import json
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-# استيراد المفاتيح من ملف config.py
-from config import API_KEY, API_SECRET, TELEGRAM_TOKEN
+# ============================================================
+# ضع مفاتيحك هنا
+# ============================================================
+
+API_KEY = (
+    'dz6TfApzEkczDFTGk8fTd61WHVVLRxeVbdI60KtDRLehQNhckNRIwrglWsanghlq'
+)
+
+API_SECRET = (
+    'dz6TfApzEkczDFTGk8fTd61WHVVLRxeVbdI60KtDRLehQNhckNRIwrglWsanghlq'
+)
+
+TELEGRAM_TOKEN =('8911308822:AAGeFsK8GTFP2f35vrKlGszP2-w_YGUFMGw'
+)
 
 BASE_URL = "https://api.binance.com"
 
 # ============================================================
-# إنشاء التوقيع
+# إنشاء Signature
 # ============================================================
 
 def create_signature(params):
@@ -25,11 +42,14 @@ def create_signature(params):
     return query_string, signature
 
 # ============================================================
-# البحث عن معاملة
+# البحث عن معاملة باستخدام Order ID
 # ============================================================
 
-def find_transaction(order_id):
+def find_transaction_by_order_id(order_id):
     order_id = str(order_id).strip()
+
+    if not order_id:
+        return None, "Order ID فارغ"
 
     params = {
         "timestamp": int(time.time() * 1000),
@@ -90,7 +110,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     msg = await update.message.reply_text("🔍 جاري البحث...")
 
-    transaction, error = find_transaction(order_id)
+    transaction, error = find_transaction_by_order_id(order_id)
 
     if error:
         await msg.edit_text(f"❌ {error}")
