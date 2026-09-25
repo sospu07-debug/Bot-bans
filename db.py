@@ -5,7 +5,7 @@ import time
 # إعدادات Turso
 # ============================================================
 
-TURSO_URL = "TURSO_URL = "https://bot-yh12.aws-eu-west-1.turso.io"
+TURSO_URL = "https://bot-yh12.aws-eu-west-1.turso.io"
 TURSO_TOKEN = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3OTAzNjQwMDYsImlkIjoiMDFhMGRhMDItODgwMS03YzEyLTk5MDctOWU3NjUyNzU1ZTJiIiwia2lkIjoiVlBQNnp6OUpNWF93enYwZVJiYTliWkZOcnhfMGw0WlJpTFhBSVJEWHNwQSIsInJpZCI6ImViYzJmNWJkLTA0ZTUtNDQ2Mi05M2QwLTJiNDM2Zjc5OTliYyJ9.ARjNKyILIi5-q6cZim76vGLlGs6H0W4UDiSsOprd7eTYjDbd_kG0g7IxXSB-pScaHVs0L3YbCgL8A6205fYiCg"
 
 # ============================================================
