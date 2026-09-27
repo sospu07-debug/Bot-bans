@@ -29,7 +29,7 @@ API_SECRET = (
     'FGKMYgMc9iI3VL1z6UhEzm1aGAk68aLMO3WxLapyhPnTrP6GjWeuahpXaE5LhKUs'
 )
 
-TELEGRAM_TOKEN =('8832934766:AAEBg4xzXdn7NYQBTmSGGrXDnrlT2vHpp58'
+TELEGRAM_TOKEN =('8601372422:AAHIFQ4RU3IzJCMsNHE6XCPBirDFgW_UCgk'
 )
 ADMIN_ID = 8993088092
 BINANCE_PAY_ID = '1124632840'
@@ -127,7 +127,7 @@ SERVICES = {
         "price": 0.1,
         "unit": 1000,
         "warranty": "لا يوجد",
-        "service_id": "ضع_رقم_الخدمة_هنا"
+        "service_id": "6904"
     }
 }
 
