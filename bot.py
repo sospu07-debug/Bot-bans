@@ -22,11 +22,18 @@ from db import (
 # الإعدادات
 # ============================================================
 
-API_KEY = 'ضع_مفتاح_API_هنا'
-API_SECRET = 'ضع_المفتاح_السري_هنا'
-TELEGRAM_TOKEN = 'ضع_توكن_البوت_هنا'
-ADMIN_ID = 123456789
-BINANCE_PAY_ID = '1252306038'
+API_KEY = (
+    'WFHIGs8VvN4IXWOIMJBRAjRVGYviS5005UNQJbOvP5t5mOeoZDtuQAeRByRTxfu8'
+)
+
+API_SECRET = (
+    'FGKMYgMc9iI3VL1z6UhEzm1aGAk68aLMO3WxLapyhPnTrP6GjWeuahpXaE5LhKUs'
+)
+
+TELEGRAM_TOKEN =('8784722345:AAFY7gkzM1Zzsrjlb6zzu5ed5GM-k0QOCUs'
+)
+ADMIN_ID = 8993088092
+BINANCE_PAY_ID = '1124632840'
 
 BASE_URL = "https://api.binance.com"
 TIME_WINDOW = 3 * 24 * 60 * 60 * 1000
