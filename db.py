@@ -7,6 +7,10 @@ TURSO_TOKEN = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3OTIw
 def get_client():
     return libsql_client.create_client_sync(url=TURSO_URL, auth_token=TURSO_TOKEN)
 
+# ============================================================
+# تهيئة الجداول
+# ============================================================
+
 def init_db():
     client = get_client()
     client.execute('''
@@ -49,7 +53,9 @@ def get_balance(user_id):
     client = get_client()
     result = client.execute("SELECT balance FROM users WHERE user_id = ?", [user_id])
     client.close()
-    return result.rows[0][0] if result.rows else 0.0
+    if result.rows:
+        return result.rows[0][0]
+    return 0.0
 
 def add_balance(user_id, amount):
     client = get_client()
@@ -61,7 +67,10 @@ def add_balance(user_id, amount):
 
 def deduct_balance(user_id, amount):
     client = get_client()
-    client.execute("UPDATE users SET balance = balance - ? WHERE user_id = ?", [amount, user_id])
+    client.execute(
+        "UPDATE users SET balance = balance - ? WHERE user_id = ?",
+        [amount, user_id]
+    )
     client.close()
 
 # ============================================================
@@ -103,7 +112,9 @@ def get_pending(user_id):
     client = get_client()
     result = client.execute("SELECT expected_amount FROM pending_payments WHERE user_id = ?", [user_id])
     client.close()
-    return result.rows[0][0] if result.rows else None
+    if result.rows:
+        return result.rows[0][0]
+    return None
 
 def clear_pending(user_id):
     client = get_client()
@@ -126,10 +137,15 @@ def get_insta_accounts():
     client = get_client()
     result = client.execute("SELECT id, name, description, price FROM insta_accounts")
     client.close()
-    return [
-        {'id': row[0], 'name': row[1], 'description': row[2], 'price': row[3]}
-        for row in result.rows
-    ]
+    accounts = []
+    for row in result.rows:
+        accounts.append({
+            'id': row[0],
+            'name': row[1],
+            'description': row[2],
+            'price': row[3]
+        })
+    return accounts
 
 def get_insta_account_by_id(acc_id):
     client = get_client()
