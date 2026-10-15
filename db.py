@@ -33,14 +33,17 @@ def init_db():
     client.execute('''
         CREATE TABLE IF NOT EXISTS insta_accounts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT,
-            password TEXT,
+            name TEXT,
+            description TEXT,
+            deliver_message TEXT,
             price REAL
         )
     ''')
     client.close()
 
-# ------- المستخدمون -------
+# ============================================================
+# المستخدمون
+# ============================================================
 
 def get_balance(user_id):
     client = get_client()
@@ -61,7 +64,9 @@ def deduct_balance(user_id, amount):
     client.execute("UPDATE users SET balance = balance - ? WHERE user_id = ?", [amount, user_id])
     client.close()
 
-# ------- الأوردرات -------
+# ============================================================
+# الأوردرات المستخدمة
+# ============================================================
 
 def is_order_used(order_id):
     client = get_client()
@@ -80,7 +85,9 @@ def save_order(order_id, user_id, amount):
         pass
     client.close()
 
-# ------- الدفعات المعلقة -------
+# ============================================================
+# الدفعات المعلقة
+# ============================================================
 
 def set_pending(user_id, amount):
     client = get_client()
@@ -103,35 +110,43 @@ def clear_pending(user_id):
     client.execute("DELETE FROM pending_payments WHERE user_id = ?", [user_id])
     client.close()
 
-# ------- حسابات إنستا -------
+# ============================================================
+# حسابات إنستا
+# ============================================================
 
-def add_insta_account(username, password, price):
+def add_insta_account(name, description, deliver_message, price):
     client = get_client()
     client.execute(
-        "INSERT INTO insta_accounts (username, password, price) VALUES (?, ?, ?)",
-        [username, password, price]
+        "INSERT INTO insta_accounts (name, description, deliver_message, price) VALUES (?, ?, ?, ?)",
+        [name, description, deliver_message, price]
     )
     client.close()
 
 def get_insta_accounts():
     client = get_client()
-    result = client.execute("SELECT id, username, password, price FROM insta_accounts")
+    result = client.execute("SELECT id, name, description, price FROM insta_accounts")
     client.close()
     return [
-        {'id': row[0], 'username': row[1], 'password': row[2], 'price': row[3]}
+        {'id': row[0], 'name': row[1], 'description': row[2], 'price': row[3]}
         for row in result.rows
     ]
 
 def get_insta_account_by_id(acc_id):
     client = get_client()
     result = client.execute(
-        "SELECT id, username, password, price FROM insta_accounts WHERE id = ?",
+        "SELECT id, name, description, deliver_message, price FROM insta_accounts WHERE id = ?",
         [acc_id]
     )
     client.close()
     if result.rows:
         row = result.rows[0]
-        return {'id': row[0], 'username': row[1], 'password': row[2], 'price': row[3]}
+        return {
+            'id': row[0],
+            'name': row[1],
+            'description': row[2],
+            'deliver_message': row[3],
+            'price': row[4]
+        }
     return None
 
 def delete_insta_account(acc_id):
