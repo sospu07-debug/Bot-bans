@@ -2,7 +2,7 @@ import libsql_client
 import time
 
 TURSO_URL = "https://bot-yh12.aws-eu-west-1.turso.io"
-TURSO_TOKEN = "ضع_توكن_Turso_هنا"
+TURSO_TOKEN = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3OTIwNDU5MjQsImlkIjoiMDFhMGRhMDItODgwMS03YzEyLTk5MDctOWU3NjUyNzU1ZTJiIiwia2lkIjoiVlBQNnp6OUpNWF93enYwZVJiYTliWkZOcnhfMGw0WlJpTFhBSVJEWHNwQSIsInJpZCI6ImViYzJmNWJkLTA0ZTUtNDQ2Mi05M2QwLTJiNDM2Zjc5OTliYyJ9.HqqLiA0YsPrIF9ETqWfbo3l_Vlp7uhsbw_sAEuvhlv6wUuBCaDa0Emn4JxdFWWRwTzRvEapO8tAWHUidtpQ3Cg"
 
 def get_client():
     return libsql_client.create_client_sync(url=TURSO_URL, auth_token=TURSO_TOKEN)
