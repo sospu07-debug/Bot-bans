@@ -22,18 +22,11 @@ from db import (
 # الإعدادات
 # ============================================================
 
-API_KEY = (
-    'WFHIGs8VvN4IXWOIMJBRAjRVGYviS5005UNQJbOvP5t5mOeoZDtuQAeRByRTxfu8'
-)
-
-API_SECRET = (
-    'FGKMYgMc9iI3VL1z6UhEzm1aGAk68aLMO3WxLapyhPnTrP6GjWeuahpXaE5LhKUs'
-)
-
-TELEGRAM_TOKEN =('8784722345:AAFY7gkzM1Zzsrjlb6zzu5ed5GM-k0QOCUs'
-)
-ADMIN_ID = 8993088092
-BINANCE_PAY_ID = '1124632840'
+API_KEY = 'ضع_مفتاح_API_هنا'
+API_SECRET = 'ضع_المفتاح_السري_هنا'
+TELEGRAM_TOKEN = 'ضع_توكن_البوت_هنا'
+ADMIN_ID = 123456789
+BINANCE_PAY_ID = '1252306038'
 
 BASE_URL = "https://api.binance.com"
 TIME_WINDOW = 3 * 24 * 60 * 60 * 1000
@@ -131,7 +124,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         context.user_data['awaiting_amount'] = True
 
-    # ------- حسابات انستا -------
+    # ------- قائمة الحسابات -------
     elif data == "insta_accounts":
         accounts = get_insta_accounts()
         if not accounts:
@@ -141,22 +134,26 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.edit_text("📸 **حسابات إنستغرام المتاحة:**")
         for acc in accounts:
             text = (
-                f"👤 **الحساب**: `{acc['username']}`\n"
-                f"🔑 **كلمة المرور**: `{acc['password']}`\n"
-                f"💰 **السعر**: `{acc['price']} USDT`"
+                f"👤 **{acc['name']}**\n"
+                f"📝 {acc['description']}\n"
+                f"💰 السعر: `{acc['price']} USDT`"
             )
             keyboard = [[InlineKeyboardButton(
-                f"🛒 شراء بـ {acc['price']} USDT",
+                f"🛒 شراء — {acc['name']}",
                 callback_data=f"buy_insta_{acc['id']}"
             )]]
-            await query.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+            await query.message.reply_text(
+                text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode="Markdown"
+            )
 
         await query.message.reply_text(
             "🔙 اضغط للرجوع.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="back_main")]])
         )
 
-    # ------- شراء حساب إنستا -------
+    # ------- شراء حساب -------
     elif data.startswith("buy_insta_"):
         acc_id = int(data.replace("buy_insta_", ""))
         acc = get_insta_account_by_id(acc_id)
@@ -172,26 +169,29 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
+        # خصم الرصيد وحذف الحساب
         deduct_balance(user_id, acc['price'])
         delete_insta_account(acc_id)
         new_balance = get_balance(user_id)
 
+        # إرسال رسالة التسليم
         await query.message.reply_text(
-            f"✅ **تم شراء الحساب بنجاح**\n\n"
-            f"👤 الحساب: `{acc['username']}`\n"
-            f"🔑 كلمة المرور: `{acc['password']}`\n"
+            f"✅ **تم الشراء بنجاح**\n\n"
+            f"📦 **معلومات الحساب:**\n\n"
+            f"{acc['deliver_message']}\n\n"
             f"💰 السعر: `{acc['price']} USDT`\n"
             f"💳 رصيدك الجديد: `{new_balance} USDT`",
             parse_mode="Markdown"
         )
 
+        # إشعار الأدمن
         try:
             await context.bot.send_message(
                 chat_id=ADMIN_ID,
                 text=(
-                    f"🛒 **بيع حساب إنستا**\n"
+                    f"🛒 **بيع حساب**\n"
                     f"المشتري: `{user_id}`\n"
-                    f"الحساب: `{acc['username']}`\n"
+                    f"الحساب: `{acc['name']}`\n"
                     f"السعر: `{acc['price']} USDT`"
                 ),
                 parse_mode="Markdown"
@@ -216,12 +216,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if user_id != ADMIN_ID:
             return
         await query.message.reply_text(
-            "📝 أرسل بيانات الحساب بالصيغة التالية:\n\n"
-            "`username,password,price`\n\n"
-            "مثال:\n`user123,pass456,1.5`",
+            "📝 **الخطوة 1/4**: أرسل **اسم الحساب** (سيظهر في الزر).\n"
+            "مثال: `حساب إنستا مميز`",
             parse_mode="Markdown"
         )
-        context.user_data['awaiting_insta'] = True
+        context.user_data['add_insta_step'] = 1
+        context.user_data['new_insta'] = {}
 
     elif data == "admin_list_insta":
         if user_id != ADMIN_ID:
@@ -235,7 +235,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         text = "📋 **الحسابات المتاحة:**\n\n"
         for acc in accounts:
-            text += f"🆔 `{acc['id']}` — `{acc['username']}` — {acc['price']} USDT\n"
+            text += f"🆔 `{acc['id']}` — `{acc['name']}` — {acc['price']} USDT\n"
         keyboard = [[InlineKeyboardButton("🔙 رجوع", callback_data="admin_panel")]]
         await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
@@ -253,32 +253,75 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text.strip()
 
-    # 1. استقبال بيانات حساب إنستا من الأدمن
-    if context.user_data.get('awaiting_insta') and user_id == ADMIN_ID:
-        try:
-            parts = text.split(',')
-            if len(parts) != 3:
-                raise ValueError
-            username = parts[0].strip()
-            password = parts[1].strip()
-            price = float(parts[2].strip())
-        except ValueError:
+    # ============================================================
+    # استقبال بيانات حساب إنستا من الأدمن (4 خطوات)
+    # ============================================================
+    if context.user_data.get('add_insta_step') and user_id == ADMIN_ID:
+        step = context.user_data['add_insta_step']
+        new_insta = context.user_data.get('new_insta', {})
+
+        if step == 1:
+            new_insta['name'] = text
+            context.user_data['new_insta'] = new_insta
+            context.user_data['add_insta_step'] = 2
             await update.message.reply_text(
-                "⚠️ صيغة خاطئة. أرسل بالشكل:\n`username,password,price`",
+                "📝 **الخطوة 2/4**: أرسل **وصف الحساب** (يظهر أسفل الاسم).\n"
+                "مثال: `حساب قديم 2015، متابعين 10k`",
                 parse_mode="Markdown"
             )
             return
-        add_insta_account(username, password, price)
-        context.user_data['awaiting_insta'] = False
-        await update.message.reply_text(
-            f"✅ **تم إضافة الحساب**\n\n"
-            f"👤 `{username}`\n"
-            f"💰 السعر: `{price} USDT`",
-            parse_mode="Markdown"
-        )
-        return
 
-    # 2. انتظار مبلغ الشحن
+        elif step == 2:
+            new_insta['description'] = text
+            context.user_data['new_insta'] = new_insta
+            context.user_data['add_insta_step'] = 3
+            await update.message.reply_text(
+                "📝 **الخطوة 3/4**: أرسل **الرسالة التي ستُرسل للمشتري بعد البيع**.\n"
+                "هنا تضع معلومات الحساب كاملة (الإيميل، كلمة المرور، إلخ).",
+                parse_mode="Markdown"
+            )
+            return
+
+        elif step == 3:
+            new_insta['deliver_message'] = text
+            context.user_data['new_insta'] = new_insta
+            context.user_data['add_insta_step'] = 4
+            await update.message.reply_text(
+                "📝 **الخطوة 4/4**: أرسل **السعر** بالدولار (أرقام فقط).\n"
+                "مثال: `1.5`",
+                parse_mode="Markdown"
+            )
+            return
+
+        elif step == 4:
+            try:
+                price = float(text)
+                if price <= 0:
+                    raise ValueError
+            except ValueError:
+                await update.message.reply_text("⚠️ أرسل سعراً صحيحاً (أرقام فقط).")
+                return
+
+            add_insta_account(
+                new_insta['name'],
+                new_insta['description'],
+                new_insta['deliver_message'],
+                price
+            )
+            context.user_data['add_insta_step'] = None
+            context.user_data['new_insta'] = {}
+            await update.message.reply_text(
+                f"✅ **تم إضافة الحساب بنجاح**\n\n"
+                f"👤 الاسم: `{new_insta['name']}`\n"
+                f"📝 الوصف: `{new_insta['description']}`\n"
+                f"💰 السعر: `{price} USDT`",
+                parse_mode="Markdown"
+            )
+            return
+
+    # ============================================================
+    # انتظار مبلغ الشحن
+    # ============================================================
     if context.user_data.get('awaiting_amount'):
         try:
             amount = float(text)
@@ -299,7 +342,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # 3. التحقق من رقم المعاملة
+    # ============================================================
+    # التحقق من رقم المعاملة
+    # ============================================================
     if text.isdigit():
         async with processing_lock:
             pending_amount = get_pending(user_id)
@@ -326,7 +371,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 clear_pending(user_id)
                 new_balance = get_balance(user_id)
                 await msg.edit_text(
-                    f"✅ **تم شحن رصيدك بنجاح**\n\n💰 المبلغ: `{tx_amount} {tx_currency}`\n💳 رصيدك الجديد: `{new_balance} USDT`",
+                    f"✅ **تم شحن رصيدك بنجاح**\n\n"
+                    f"💰 المبلغ: `{tx_amount} {tx_currency}`\n"
+                    f"💳 رصيدك الجديد: `{new_balance} USDT`",
                     parse_mode="Markdown"
                 )
                 try:
@@ -339,7 +386,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     print(f"فشل إشعار الأدمن: {e}")
             else:
                 await msg.edit_text(
-                    f"❌ **المبلغ غير مطابق**\n\nالمطلوب: `{pending_amount} USDT`\nالمدفوع: `{tx_amount} {tx_currency}`\n\n⚠️ لم يتم شحن رصيدك.",
+                    f"❌ **المبلغ غير مطابق**\n\n"
+                    f"المطلوب: `{pending_amount} USDT`\n"
+                    f"المدفوع: `{tx_amount} {tx_currency}`\n\n"
+                    f"⚠️ لم يتم شحن رصيدك.",
                     parse_mode="Markdown"
                 )
                 try:
