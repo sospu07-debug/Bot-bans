@@ -1,23 +1,11 @@
 import libsql_client
 import time
 
-# ============================================================
-# إعدادات Turso
-# ============================================================
-
 TURSO_URL = "https://bot-yh12.aws-eu-west-1.turso.io"
-TURSO_TOKEN = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3OTAzNjQwMDYsImlkIjoiMDFhMGRhMDItODgwMS03YzEyLTk5MDctOWU3NjUyNzU1ZTJiIiwia2lkIjoiVlBQNnp6OUpNWF93enYwZVJiYTliWkZOcnhfMGw0WlJpTFhBSVJEWHNwQSIsInJpZCI6ImViYzJmNWJkLTA0ZTUtNDQ2Mi05M2QwLTJiNDM2Zjc5OTliYyJ9.ARjNKyILIi5-q6cZim76vGLlGs6H0W4UDiSsOprd7eTYjDbd_kG0g7IxXSB-pScaHVs0L3YbCgL8A6205fYiCg"
-
-# ============================================================
-# الاتصال
-# ============================================================
+TURSO_TOKEN = "ضع_توكن_Turso_هنا"
 
 def get_client():
     return libsql_client.create_client_sync(url=TURSO_URL, auth_token=TURSO_TOKEN)
-
-# ============================================================
-# تهيئة الجداول
-# ============================================================
 
 def init_db():
     client = get_client()
@@ -42,19 +30,23 @@ def init_db():
             created_at INTEGER
         )
     ''')
+    client.execute('''
+        CREATE TABLE IF NOT EXISTS insta_accounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            password TEXT,
+            price REAL
+        )
+    ''')
     client.close()
 
-# ============================================================
-# دوال المستخدمين
-# ============================================================
+# ------- المستخدمون -------
 
 def get_balance(user_id):
     client = get_client()
     result = client.execute("SELECT balance FROM users WHERE user_id = ?", [user_id])
     client.close()
-    if result.rows:
-        return result.rows[0][0]
-    return 0.0
+    return result.rows[0][0] if result.rows else 0.0
 
 def add_balance(user_id, amount):
     client = get_client()
@@ -69,9 +61,7 @@ def deduct_balance(user_id, amount):
     client.execute("UPDATE users SET balance = balance - ? WHERE user_id = ?", [amount, user_id])
     client.close()
 
-# ============================================================
-# دوال الأوردرات المستخدمة
-# ============================================================
+# ------- الأوردرات -------
 
 def is_order_used(order_id):
     client = get_client()
@@ -90,9 +80,7 @@ def save_order(order_id, user_id, amount):
         pass
     client.close()
 
-# ============================================================
-# دوال الدفعات المعلقة
-# ============================================================
+# ------- الدفعات المعلقة -------
 
 def set_pending(user_id, amount):
     client = get_client()
@@ -108,11 +96,45 @@ def get_pending(user_id):
     client = get_client()
     result = client.execute("SELECT expected_amount FROM pending_payments WHERE user_id = ?", [user_id])
     client.close()
-    if result.rows:
-        return result.rows[0][0]
-    return None
+    return result.rows[0][0] if result.rows else None
 
 def clear_pending(user_id):
     client = get_client()
     client.execute("DELETE FROM pending_payments WHERE user_id = ?", [user_id])
+    client.close()
+
+# ------- حسابات إنستا -------
+
+def add_insta_account(username, password, price):
+    client = get_client()
+    client.execute(
+        "INSERT INTO insta_accounts (username, password, price) VALUES (?, ?, ?)",
+        [username, password, price]
+    )
+    client.close()
+
+def get_insta_accounts():
+    client = get_client()
+    result = client.execute("SELECT id, username, password, price FROM insta_accounts")
+    client.close()
+    return [
+        {'id': row[0], 'username': row[1], 'password': row[2], 'price': row[3]}
+        for row in result.rows
+    ]
+
+def get_insta_account_by_id(acc_id):
+    client = get_client()
+    result = client.execute(
+        "SELECT id, username, password, price FROM insta_accounts WHERE id = ?",
+        [acc_id]
+    )
+    client.close()
+    if result.rows:
+        row = result.rows[0]
+        return {'id': row[0], 'username': row[1], 'password': row[2], 'price': row[3]}
+    return None
+
+def delete_insta_account(acc_id):
+    client = get_client()
+    client.execute("DELETE FROM insta_accounts WHERE id = ?", [acc_id])
     client.close()
